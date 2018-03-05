@@ -22,7 +22,7 @@ function writeToScreen(htmlSelector, newValue) {
 function guessesRemaining(limit) {
     limit--;
     console.log("Your new limit is ", limit);
-    writeToScreen(remaining,limit);
+    writeToScreen(guessesLeft,limit);
     return limit;
 }
 
@@ -35,6 +35,41 @@ function getCPUGuess (array, index) {
     return array[index];
 }
 
+function createBoard (randomWord, htmlSelector) {
+    for (var i = 0; i < randomWord.length; i++) {
+        if (randomWord[i] === " "){
+            $(htmlSelector).html("&nbsp&nbsp");
+        }
+        else {
+            $(htmlSelector).text("_");
+        }
+    }
+}
+
+function updateBoard (array, randomWord, htmlSelector, correctLetter) {
+    for (var i = 0; i < randomWord.length; i++) {
+        if (randomWord[i] === " "){
+            $(htmlSelector).html("&nbsp&nbsp");
+        }
+        else if (randomWord[i] != " " && i === array[i]) {
+            $(htmlSelector).text(correctLetter);
+        }
+        else {
+            $(htmlSelector).text("_");
+        }
+    }
+}
+
+function goodGuess(game, newGuess, randomWord) {   
+    var letterOccurances = [];
+    //create an array that contains all the "indexes of" the places where the correct letter appears in the word
+    for (var i = 0; i < randomWord.length; i++){
+        if (newGuess === randomWord[i]){
+            letterOccurances.push(i); //push the indices of all the correctly-guessed letter occurences
+        }    
+    }
+ }//Take in user input; compare it to the computer's guess; return true if it's correct; return false if not.
+
 //Constants for HTML elements to pass around during game play using jQuery
 const guessesLeft = "#guesses-left";
 const userWins = "#user-wins";
@@ -42,6 +77,7 @@ const userLosses = "#user-losses";
 const userGuess = "#user-guess";
 const guessHistory = "#guess-history";
 const cpuWord = "#cpu-word";
+const gameBoard = "#game-board";
 
 
 //Variables for the inner text of HTML elements will be deprecated in future releases :) 
@@ -75,6 +111,7 @@ var nintendo = {
     numLosses: 0,
     guesses: [],
     cpuGuess: "",
+    selectedGame = "nintendo",
     setScore: function() {
         numWins *=2;
         scores.push(numWins);
@@ -82,21 +119,31 @@ var nintendo = {
     },
 
     initializeGame: function() {
-    //selectedGame = "nintendo";
-    console.log(this.gameArray);
-    $(userGuess).text("NEW GAME");
-    $(userWins).text(0);
-    $(userLosses).text(0);
-    $(guessHistory).text("none");
-    guesses = [];
-    maxGuesses = 7;
-    $(guessesLeft).text(this.maxGuesses);
-    console.log("you are here");
-    this.cpuGuess = getRandomInt(0,this.gameArray.length,this.gameArray);
-    alert(this.gameArray.length);
-    writeToScreen(cpuWord,this.cpuGuess);
-    console.log("the cpu guessed ",this.cpuGuess);
-    }
+        console.log(this.gameArray);
+        $(userGuess).text("NEW GAME");
+        $(userWins).text(0);
+        $(userLosses).text(0);
+        $(guessHistory).text("none");
+        guesses = [];
+        maxGuesses = 7;
+        $(guessesLeft).text(this.maxGuesses);
+        console.log("you are here");
+        this.cpuGuess = getRandomInt(0,this.gameArray.length,this.gameArray);
+        alert(this.gameArray.length);
+        writeToScreen(cpuWord,this.cpuGuess);
+        console.log("the cpu guessed ",this.cpuGuess);
+    },
+
+    playAgain: function() {
+        guesses = [];
+        maxGuesses = 7;
+        $(guessesLeft).text(this.maxGuesses);
+        console.log("you are here");
+        this.cpuGuess = getRandomInt(0,this.gameArray.length,this.gameArray);
+        alert(this.gameArray.length);
+        writeToScreen(cpuWord,this.cpuGuess);
+        console.log("the cpu guessed ",this.cpuGuess);
+    }//This is basically initializing the game sans resetting the scores and guesses
 };
 
 var geography = {
@@ -149,10 +196,20 @@ $(document).ready(function(){
             keyPressed = keyPressed.toLowerCase();
             alert("lower is better");
             }
+
+            //Get on with the business of managing the game
             writeToScreen(userGuess, keyPressed);
+            guesses = documentHistory(keyPressed,guesses);
+
+            //Determine if the user guessed correctly
+            var correctGuess = goodGuess(nintendo.selectedGame, keyPressed, nintendo.cpuGuess);
+            if (correctGuess.length > 0) {
+                writeToScreen(cpuWord, nintendo.cpuGuess);
+                alert("There are someNumOf ", keyPressed, "s");
+            }
+            else {
+                maxGuesses = guessesRemaining(maxGuesses);
+            }
         };
     });
-
-    //
-    //guesses = documentHistory(keyPressed,guesses);
 });
