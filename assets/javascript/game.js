@@ -1,9 +1,8 @@
-function getRandomInt(min, max, array) {
+function getRandomInt(min, max) {
     min = Math.ceil(min);
     max = Math.floor(max);
-    randomInt = Math.floor(Math.random() * (max - min)) + min;
-    var guessedWord = getCPUGuess(array,randomInt);
-    return guessedWord;
+    var randomInt = Math.floor(Math.random() * (max - min)) + min;
+    return randomInt;
 }//The maximum is exclusive and the minimum is inclusive
 
 function documentHistory(newGuess, array) {
@@ -31,43 +30,48 @@ function getHighScore(gameScoresArray) {
     return highScore;
 }
 
-function getCPUGuess (array, index) {
+function getCPUGuess (min, max, array) {
+    var index = getRandomInt(min, max);
     return array[index];
 }
 
-function createBoard (randomWord, htmlSelector) {
-    for (var i = 0; i < randomWord.length; i++) {
-        if (randomWord[i] === " "){
-            $(htmlSelector).html("&nbsp&nbsp");
+function createBoard (randomPhrase) {
+    for (var i = 0; i < randomPhrase.length; i++) { 
+        if (randomPhrase.charAt(i) === " ") {
+            $(blanks).append("&nbsp;&nbsp;&nbsp;");
         }
         else {
-            $(htmlSelector).text("_");
+            $(blanks).append("- &nbsp;");
         }
     }
 }
 
-function updateBoard (array, randomWord, htmlSelector, correctLetter) {
-    for (var i = 0; i < randomWord.length; i++) {
-        if (randomWord[i] === " "){
-            $(htmlSelector).html("&nbsp&nbsp");
+function updateBoard (occurrenceArray, phrase, correctLetter) {
+    alert(phrase);
+    for (var i = 0; i < phrase.length; i++) {
+        if (phrase.charAt(i) === " "){
+            $(blanks).append("&nbsp;&nbsp;&nbsp;");
         }
-        else if (randomWord[i] != " " && i === array[i]) {
-            $(htmlSelector).text(correctLetter);
+        else if ((phrase.charAt(i) != " ") && (i === occurrenceArray[i])) {
+            $(blanks).text(correctLetter);
         }
         else {
-            $(htmlSelector).text("_");
+            $(blanks).append("- &nbsp;");
         }
     }
 }
 
-function goodGuess(game, newGuess, randomWord) {   
-    var letterOccurances = [];
-    //create an array that contains all the "indexes of" the places where the correct letter appears in the word
+function goodGuess(newGuess, randomWord) {   
+    var letterOccurrences = [];
     for (var i = 0; i < randomWord.length; i++){
         if (newGuess === randomWord[i]){
-            letterOccurances.push(i); //push the indices of all the correctly-guessed letter occurences
-        }    
+            letterOccurrences.push(i); //push the indices of all the correctly-guessed letter occurences
+        }
     }
+    if (letterOccurrences.length > 0) {
+        updateBoard(letterOccurrences, randomWord, newGuess);
+    }
+    return letterOccurrences;
  }//Take in user input; compare it to the computer's guess; return true if it's correct; return false if not.
 
 //Constants for HTML elements to pass around during game play using jQuery
@@ -77,7 +81,7 @@ const userLosses = "#user-losses";
 const userGuess = "#user-guess";
 const guessHistory = "#guess-history";
 const cpuWord = "#cpu-word";
-const gameBoard = "#game-board";
+const blanks = "#blanks";
 
 
 //Variables for the inner text of HTML elements will be deprecated in future releases :) 
@@ -111,7 +115,7 @@ var nintendo = {
     numLosses: 0,
     guesses: [],
     cpuGuess: "",
-    selectedGame = "nintendo",
+    selectedGame: "nintendo",
     setScore: function() {
         numWins *=2;
         scores.push(numWins);
@@ -128,7 +132,8 @@ var nintendo = {
         maxGuesses = 7;
         $(guessesLeft).text(this.maxGuesses);
         console.log("you are here");
-        this.cpuGuess = getRandomInt(0,this.gameArray.length,this.gameArray);
+        this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
+        createBoard(this.cpuGuess);
         alert(this.gameArray.length);
         writeToScreen(cpuWord,this.cpuGuess);
         console.log("the cpu guessed ",this.cpuGuess);
@@ -193,8 +198,8 @@ $(document).ready(function(){
                 alert("Please guess an alphabet");
             }
             else {
-            keyPressed = keyPressed.toLowerCase();
-            alert("lower is better");
+            keyPressed = keyPressed.toUpperCase();
+            alert("upper is better");
             }
 
             //Get on with the business of managing the game
@@ -202,10 +207,11 @@ $(document).ready(function(){
             guesses = documentHistory(keyPressed,guesses);
 
             //Determine if the user guessed correctly
-            var correctGuess = goodGuess(nintendo.selectedGame, keyPressed, nintendo.cpuGuess);
+            var correctGuess = goodGuess(keyPressed, nintendo.cpuGuess);
+            console.log(correctGuess.length);
             if (correctGuess.length > 0) {
-                writeToScreen(cpuWord, nintendo.cpuGuess);
-                alert("There are someNumOf ", keyPressed, "s");
+                alert("There are " + correctGuess.length + " " + keyPressed + "s");
+                maxGuesses = guessesRemaining(maxGuesses);
             }
             else {
                 maxGuesses = guessesRemaining(maxGuesses);
