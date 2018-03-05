@@ -13,8 +13,12 @@ function documentHistory(newGuess, array) {
 }//Store all of the user's guesses in an array and print them to the screen
 
 function writeToScreen(htmlSelector, newValue) {
-    //htmlElement.innerHTML = newValue;
-    $(htmlSelector).text(newValue);
+    if (typeof(newValue) === 'object') {
+        $(htmlSelector).text(newValue.join(' '));
+    }
+    else {
+        $(htmlSelector).text(newValue);
+    }
     console.log("You just printed ", newValue, " to the screen");
 }//One f(x) to handle all of the screen printing capabilities
 
@@ -32,12 +36,22 @@ function getHighScore(gameScoresArray) {
 
 function getCPUGuess (min, max, array) {
     var index = getRandomInt(min, max);
-    return array[index];
+    var guessStr = array[index];
+    var guessArray = [];
+    for (i = 0; i < guessStr.length; i++) {
+        if (guessStr.charAt(i) === " ") {
+            guessArray.push(" ");
+        }
+        else {
+            guessArray.push(guessStr.charAt(i));
+        }
+    }
+    return guessArray;
 }
 
 function createBoard (randomPhrase) {
     for (var i = 0; i < randomPhrase.length; i++) { 
-        if (randomPhrase.charAt(i) === " ") {
+        if (randomPhrase[i] === " ") {
             $(blanks).append("&nbsp;&nbsp;&nbsp;");
         }
         else {
@@ -47,19 +61,14 @@ function createBoard (randomPhrase) {
 }
 
 function updateBoard (occurrenceArray, phrase, correctLetter) {
-    alert(phrase);
-    for (var i = 0; i < phrase.length; i++) {
-        if (phrase.charAt(i) === " "){
-            $(blanks).append("&nbsp;&nbsp;&nbsp;");
+    
+    for (var i = 0; i < occurrenceArray.length; i++) {
+            boardArray[occurrenceArray[i]] = correctLetter;
         }
-        else if ((phrase.charAt(i) != " ") && (i === occurrenceArray[i])) {
-            $(blanks).text(correctLetter);
-        }
-        else {
-            $(blanks).append("- &nbsp;");
-        }
+        console.log("printing updated boardArray" + boardArray);
+        boardStr = boardArray.join(" ");
+        $(blanks).html(boardArray.join(" "));
     }
-}
 
 function goodGuess(newGuess, randomWord) {   
     var letterOccurrences = [];
@@ -102,6 +111,7 @@ var word = $(cpuWord).text(); //document.getElementById("cpu-letter");*/
 //Gameplay variables
 var scores = [];
 var highScore = 0;
+var boardArray = [];
 
 //Setup game objects
 var nintendo = {
@@ -114,7 +124,7 @@ var nintendo = {
     numWins: 0,
     numLosses: 0,
     guesses: [],
-    cpuGuess: "",
+    cpuGuess: [],
     selectedGame: "nintendo",
     setScore: function() {
         numWins *=2;
@@ -144,7 +154,7 @@ var nintendo = {
         maxGuesses = 7;
         $(guessesLeft).text(this.maxGuesses);
         console.log("you are here");
-        this.cpuGuess = getRandomInt(0,this.gameArray.length,this.gameArray);
+        this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
         alert(this.gameArray.length);
         writeToScreen(cpuWord,this.cpuGuess);
         console.log("the cpu guessed ",this.cpuGuess);
@@ -189,6 +199,15 @@ $(document).ready(function(){
         $(".game-selection").hide();
 
         nintendo.initializeGame();
+        for (i = 0; i < nintendo.cpuGuess.length; i++) {
+            if (nintendo.cpuGuess[i] === " ") {
+                boardArray.push("&nbsp;&nbsp;&nbsp;");
+            }
+            else {
+                boardArray.push("- &nbsp;")
+            }
+        }
+        console.log("Printing boardArray " + boardArray);
 
         document.onkeyup = function (event) {
     
@@ -199,7 +218,6 @@ $(document).ready(function(){
             }
             else {
             keyPressed = keyPressed.toUpperCase();
-            alert("upper is better");
             }
 
             //Get on with the business of managing the game
