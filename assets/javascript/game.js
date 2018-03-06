@@ -8,7 +8,6 @@ function getRandomInt(min, max) {
 function documentHistory(newGuess, array) {
     array.push(newGuess);
     writeToScreen(guessHistory,array);
-    console.log("Your guess history is ", array);
     return array;
 }//Store all of the user's guesses in an array and print them to the screen
 
@@ -19,7 +18,6 @@ function writeToScreen(htmlSelector, newValue) {
     else {
         $(htmlSelector).text(newValue);
     }
-    console.log("You just printed ", newValue, " to the screen");
 }//One f(x) to handle all of the screen printing capabilities
 
 function guessesRemaining(limit) {
@@ -53,6 +51,7 @@ function createBoard (randomPhrase) {
     for (var i = 0; i < randomPhrase.length; i++) { 
         if (randomPhrase[i] === " ") {
             $(blanks).append("&nbsp;&nbsp;&nbsp;");
+            numSpaces++
         }
         else {
             $(blanks).append("- &nbsp;");
@@ -65,9 +64,7 @@ function updateBoard (occurrenceArray, correctLetter) {
     for (var i = 0; i < occurrenceArray.length; i++) {
             boardArray[occurrenceArray[i]] = correctLetter;
         }
-        console.log("printing updated boardArray" + boardArray);
         $(blanks).html(boardArray.join(" "));
-        console.log("number of items in boardArray " + boardArray.length);
     }
 
 function goodGuess(newGuess, randomWord) {   
@@ -113,6 +110,8 @@ var word = $(cpuWord).text(); //document.getElementById("cpu-letter");*/
 var scores = [];
 var highScore = 0;
 var boardArray = [];
+var correctGuess = [];
+var numSpaces = 0;
 
 //Setup game objects
 var nintendo = {
@@ -127,6 +126,7 @@ var nintendo = {
     guesses: [],
     cpuGuess: [],
     selectedGame: "nintendo",
+    lettersAvail: 0,
     setScore: function() {
         numWins *=2;
         scores.push(numWins);
@@ -145,7 +145,10 @@ var nintendo = {
         boardArray = [];
         $(guessesLeft).text(this.maxGuesses);
         this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
+        console.log("there are " + this.cpuGuess.length + " letters in the random word");
         createBoard(this.cpuGuess);
+        this.lettersAvail = this.cpuGuess.length - numSpaces;
+        console.log("you have " + this.lettersAvail + " letters remaining at the beginning");
         this.initializeBoardArray();
     },
 
@@ -154,25 +157,31 @@ var nintendo = {
         $(guessHistory).text("none");
         $(blanks).text("");
         boardArray = [];
+        numSpaces = 0;
         this.guesses = [];
         this.maxGuesses = 10;
         $(guessesLeft).text(this.maxGuesses);
         this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
         createBoard(this.cpuGuess);
+        this.lettersAvail = this.cpuGuess.length - numSpaces;
         this.initializeBoardArray();
     },
 
     puzzleSolved: function() {
-        var correctCount = 0;
-        for (var i = 0; i < boardArray.length; i++) {
-            if (boardArray[i] === this.cpuGuess[i]) {
-                correctCount++;
+            if (this.lettersAvail === 0) {
+                this.numWins++;
+                writeToScreen(userWins,this.numWins);
+                writeToScreen(cpuWord,this.cpuGuess);
+                
+                let gameOn = confirm("Congratulations; You solved the puzzel! Play again?");
+                if (gameOn) {
+                    this.playAgain(); 
+                }
+                else {
+                    this.initializeGame();
+                }
             }
-        }
-            if (correctCount === this.cpuGuess.length) {
-                return true;
-            }
-            else {
+            else { 
                 return false;
             }
     },
@@ -232,7 +241,11 @@ $(document).ready(function(){
         document.onkeyup = function (event) {
     
             var keyPressed = event.key;
-            let bool = nintendo.puzzleSolved();
+
+            if (keyPressed === "ENTER"){
+                $(userGuess).text("I'D LIKE TO SOLVE THE PUZZLE");
+                nintendo.puzzleSolved();
+            }
 
             if (nintendo.maxGuesses === 0) {
                 nintendo.numLosses++;
@@ -247,41 +260,29 @@ $(document).ready(function(){
                 }
                 
             }
-            
-            else if (bool) {
-                nintendo.numWins++;
-                writeToScreen(userWins,nintendo.numWins);
-                writeToScreen(cpuWord,nintendo.cpuGuess);
-                let gameOn = confirm("Congratulations; You solved the puzzel! Play again?");
-                if (gameOn) {
-                    nintendo.playAgain(); 
-                }
-                else {
-                    $(".game-selection").show();
-                }
-            }
             else {
             
                 if ((keyPressed.charCodeAt(0) < 65) || (keyPressed.charCodeAt(0) > 122)) {
                     alert("Please guess an alphabet");
                 }
                 else {
-                keyPressed = keyPressed.toUpperCase();
-                }
+                    keyPressed = keyPressed.toUpperCase();
 
-                //Get on with the business of managing the game
-                writeToScreen(userGuess, keyPressed);
-                guesses = documentHistory(keyPressed,guesses);
+                    //Get on with the business of managing the game
+                    writeToScreen(userGuess, keyPressed);
+                    guesses = documentHistory(keyPressed,guesses);
 
-                //Determine if the user guessed correctly
-                var correctGuess = goodGuess(keyPressed, nintendo.cpuGuess);
-                console.log(correctGuess.length);
-                if (correctGuess.length > 0) {
-                    alert("There are " + correctGuess.length + " " + keyPressed + "s");
-                    nintendo.maxGuesses = guessesRemaining(nintendo.maxGuesses);
-                }
-                else {
-                    nintendo.maxGuesses = guessesRemaining(nintendo.maxGuesses);
+                    //Determine if the user guessed correctly
+                    correctGuess = goodGuess(keyPressed, nintendo.cpuGuess);
+                    let bool = nintendo.puzzleSolved();
+                    if (!bool){
+                        if (correctGuess.length > 0) {
+                            alert("There are " + correctGuess.length + " " + keyPressed + "s");
+                            nintendo.lettersAvail -= correctGuess.length;
+                            console.log("you have " + nintendo.lettersAvail + " letters remaining");
+                            nintendo.maxGuesses = guessesRemaining(nintendo.maxGuesses);
+                        }
+                    }
                 }
             }
         };

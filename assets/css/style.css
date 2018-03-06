@@ -1,3 +1,7 @@
 .game-board {
     width: 100%;
 }
+
+#solve {
+    color: green;
+}
