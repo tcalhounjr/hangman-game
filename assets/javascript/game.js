@@ -60,14 +60,14 @@ function createBoard (randomPhrase) {
     }
 }
 
-function updateBoard (occurrenceArray, phrase, correctLetter) {
+function updateBoard (occurrenceArray, correctLetter) {
     
     for (var i = 0; i < occurrenceArray.length; i++) {
             boardArray[occurrenceArray[i]] = correctLetter;
         }
         console.log("printing updated boardArray" + boardArray);
-        boardStr = boardArray.join(" ");
         $(blanks).html(boardArray.join(" "));
+        console.log("number of items in boardArray " + boardArray.length);
     }
 
 function goodGuess(newGuess, randomWord) {   
@@ -78,10 +78,11 @@ function goodGuess(newGuess, randomWord) {
         }
     }
     if (letterOccurrences.length > 0) {
-        updateBoard(letterOccurrences, randomWord, newGuess);
+        updateBoard(letterOccurrences, newGuess);
     }
     return letterOccurrences;
  }//Take in user input; compare it to the computer's guess; return true if it's correct; return false if not.
+    
 
 //Constants for HTML elements to pass around during game play using jQuery
 const guessesLeft = "#guesses-left";
@@ -120,7 +121,7 @@ var nintendo = {
     gameArray: ["RING KING", "TECMO BOWL", "TECMO SUPER BOWL", "EXCITEBIKE", "BASES LOADED", "ARCH RIVALS", "DOUBLE DRIBBLE", "BLADES OF STEEL",
                 "RBI BASEBALL", "PUNCH OUT", "SUPER MARIO", "TETRIS", "DONKEY KONG", "LEGEND OF ZELDA", "CONTRA", "KID ICARUS", "STREET FIGHTER", 
                 "NINJA GAIDEN", "KUNG FU", "BATMAN", "DOUBLE DRAGON", "RC PRO AM", "MEGA MAN"],
-    maxGuesses: 7,
+    maxGuesses: 10,
     numWins: 0,
     numLosses: 0,
     guesses: [],
@@ -133,32 +134,60 @@ var nintendo = {
     },
 
     initializeGame: function() {
-        console.log(this.gameArray);
+        
         $(userGuess).text("NEW GAME");
         $(userWins).text(0);
         $(userLosses).text(0);
         $(guessHistory).text("none");
+        $(blanks).text("");
         guesses = [];
-        maxGuesses = 7;
+        maxGuesses = 10;
+        boardArray = [];
         $(guessesLeft).text(this.maxGuesses);
-        console.log("you are here");
         this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
         createBoard(this.cpuGuess);
-        alert(this.gameArray.length);
-        writeToScreen(cpuWord,this.cpuGuess);
-        console.log("the cpu guessed ",this.cpuGuess);
+        this.initializeBoardArray();
     },
 
     playAgain: function() {
-        guesses = [];
-        maxGuesses = 7;
+        $(userGuess).text("NEW GAME");
+        $(guessHistory).text("none");
+        $(blanks).text("");
+        boardArray = [];
+        this.guesses = [];
+        this.maxGuesses = 10;
         $(guessesLeft).text(this.maxGuesses);
-        console.log("you are here");
         this.cpuGuess = getCPUGuess(0,this.gameArray.length,this.gameArray);
-        alert(this.gameArray.length);
-        writeToScreen(cpuWord,this.cpuGuess);
-        console.log("the cpu guessed ",this.cpuGuess);
-    }//This is basically initializing the game sans resetting the scores and guesses
+        createBoard(this.cpuGuess);
+        this.initializeBoardArray();
+    },
+
+    puzzleSolved: function() {
+        var correctCount = 0;
+        for (var i = 0; i < boardArray.length; i++) {
+            if (boardArray[i] === this.cpuGuess[i]) {
+                correctCount++;
+            }
+        }
+            if (correctCount === this.cpuGuess.length) {
+                return true;
+            }
+            else {
+                return false;
+            }
+    },
+
+    initializeBoardArray: function() {
+        //Build the boardArray so it can updated it during the game
+        for (i = 0; i < this.cpuGuess.length; i++) {
+            if (this.cpuGuess[i] === " ") {
+                boardArray.push("&nbsp;&nbsp;&nbsp;");
+            }
+            else {
+                boardArray.push("- &nbsp;")
+            }
+        }
+     }
 };
 
 var geography = {
@@ -199,40 +228,61 @@ $(document).ready(function(){
         $(".game-selection").hide();
 
         nintendo.initializeGame();
-        for (i = 0; i < nintendo.cpuGuess.length; i++) {
-            if (nintendo.cpuGuess[i] === " ") {
-                boardArray.push("&nbsp;&nbsp;&nbsp;");
-            }
-            else {
-                boardArray.push("- &nbsp;")
-            }
-        }
-        console.log("Printing boardArray " + boardArray);
 
         document.onkeyup = function (event) {
     
             var keyPressed = event.key;
+            let bool = nintendo.puzzleSolved();
+
+            if (nintendo.maxGuesses === 0) {
+                nintendo.numLosses++;
+                writeToScreen(userLosses,nintendo.numLosses);
+                writeToScreen(cpuWord,nintendo.cpuGuess);
+                let gameOn = confirm("Sorry you took an L this round. Would you like to play again?");
+                if (gameOn) {
+                    nintendo.playAgain(); 
+                }
+                else {
+                    $(".game-selection").show();
+                }
+                
+            }
             
-            if ((keyPressed.charCodeAt(0) < 65) || (keyPressed.charCodeAt(0) > 122)) {
-                alert("Please guess an alphabet");
+            else if (bool) {
+                nintendo.numWins++;
+                writeToScreen(userWins,nintendo.numWins);
+                writeToScreen(cpuWord,nintendo.cpuGuess);
+                let gameOn = confirm("Congratulations; You solved the puzzel! Play again?");
+                if (gameOn) {
+                    nintendo.playAgain(); 
+                }
+                else {
+                    $(".game-selection").show();
+                }
             }
             else {
-            keyPressed = keyPressed.toUpperCase();
-            }
+            
+                if ((keyPressed.charCodeAt(0) < 65) || (keyPressed.charCodeAt(0) > 122)) {
+                    alert("Please guess an alphabet");
+                }
+                else {
+                keyPressed = keyPressed.toUpperCase();
+                }
 
-            //Get on with the business of managing the game
-            writeToScreen(userGuess, keyPressed);
-            guesses = documentHistory(keyPressed,guesses);
+                //Get on with the business of managing the game
+                writeToScreen(userGuess, keyPressed);
+                guesses = documentHistory(keyPressed,guesses);
 
-            //Determine if the user guessed correctly
-            var correctGuess = goodGuess(keyPressed, nintendo.cpuGuess);
-            console.log(correctGuess.length);
-            if (correctGuess.length > 0) {
-                alert("There are " + correctGuess.length + " " + keyPressed + "s");
-                maxGuesses = guessesRemaining(maxGuesses);
-            }
-            else {
-                maxGuesses = guessesRemaining(maxGuesses);
+                //Determine if the user guessed correctly
+                var correctGuess = goodGuess(keyPressed, nintendo.cpuGuess);
+                console.log(correctGuess.length);
+                if (correctGuess.length > 0) {
+                    alert("There are " + correctGuess.length + " " + keyPressed + "s");
+                    nintendo.maxGuesses = guessesRemaining(nintendo.maxGuesses);
+                }
+                else {
+                    nintendo.maxGuesses = guessesRemaining(nintendo.maxGuesses);
+                }
             }
         };
     });
